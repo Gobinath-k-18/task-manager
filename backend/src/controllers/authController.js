@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { sendWelcomeEmail } = require("../services/emailService");
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -46,6 +47,15 @@ async function register(req, res) {
     );
 
     await client.query("COMMIT");
+    try {
+      await sendWelcomeEmail({
+        name: result.rows[0].name,
+        email: result.rows[0].email,
+      });
+    } catch (error) {
+      console.error("Welcome email delivery failed:", error);
+    }
+
     return res.status(201).json({
       message: "Registration successful",
       user: result.rows[0],

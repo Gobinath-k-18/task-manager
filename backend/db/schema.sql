@@ -17,3 +17,10 @@ CREATE TABLE tasks (
   owner_id INTEGER NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE due_date_reminders (
+  task_id INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  due_date DATE NOT NULL,
+  sent_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
