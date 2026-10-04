@@ -7,7 +7,7 @@ import CreateTaskModal from '../components/CreateTaskModal'
 import DeleteTaskDialog from '../components/DeleteTaskDialog'
 import TaskCard from '../components/TaskCard'
 
-function Dashboard() {
+function Dashboard({ theme, onToggleTheme }) {
   const navigate = useNavigate()
   const user = getUser()
   const [tasks, setTasks] = useState([])
@@ -18,6 +18,7 @@ function Dashboard() {
   const [taskToDelete, setTaskToDelete] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const loadTasks = useCallback(async () => {
     setIsLoading(true)
@@ -73,10 +74,16 @@ function Dashboard() {
     [tasks],
   )
   const filteredTasks = useMemo(
-    () => statusFilter === 'all'
-      ? tasks
-      : tasks.filter((task) => task.status === statusFilter),
-    [statusFilter, tasks],
+    () => {
+      const normalizedQuery = searchQuery.trim().toLocaleLowerCase()
+      return tasks.filter((task) => {
+        const matchesStatus = statusFilter === 'all' || task.status === statusFilter
+        const matchesSearch = !normalizedQuery
+          || `${task.title || ''} ${task.description || ''}`.toLocaleLowerCase().includes(normalizedQuery)
+        return matchesStatus && matchesSearch
+      })
+    },
+    [searchQuery, statusFilter, tasks],
   )
 
   function handleLogout() {
@@ -129,6 +136,15 @@ function Dashboard() {
       <header className="topbar">
         <Brand />
         <div className="topbar-actions">
+          <button
+            className="theme-toggle"
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
+          </button>
           <div className="user-chip">
             <span className="avatar" aria-hidden="true">{initials}</span>
             <span>{user?.name || 'Your workspace'}</span>
@@ -163,6 +179,23 @@ function Dashboard() {
         </div>
 
         <div className="task-filter-row">
+          <div className="task-search-control">
+            <label htmlFor="task-search">Search tasks</label>
+            <div className="task-search-input-wrap">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="8.8" cy="8.8" r="5.8" stroke="currentColor" strokeWidth="1.6" />
+                <path d="m13.2 13.2 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+              <input
+                id="task-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by title or description"
+                aria-label="Search tasks by title or description"
+              />
+            </div>
+          </div>
           <div className="task-filter-control">
             <label htmlFor="task-status-filter">Status</label>
             <select
@@ -213,10 +246,17 @@ function Dashboard() {
           <div className="task-state">
             <div className="task-state-inner">
               <span className="state-icon" aria-hidden="true">⌕</span>
-              <h2>No tasks in this status</h2>
-              <p>Try another status, or show all your tasks again.</p>
-              <button className="secondary-button show-all-tasks-button" type="button" onClick={() => setStatusFilter('all')}>
-                Show all tasks
+              <h2>No tasks found</h2>
+              <p>Try a different search or status filter.</p>
+              <button
+                className="secondary-button show-all-tasks-button"
+                type="button"
+                onClick={() => {
+                  setSearchQuery('')
+                  setStatusFilter('all')
+                }}
+              >
+                Clear search and filters
               </button>
             </div>
           </div>
