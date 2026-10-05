@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const { sendWelcomeEmail } = require("../services/emailService");
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailPattern = /^[^\s@]+@gmail\.com$/;
 
 async function register(req, res) {
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
@@ -16,7 +16,7 @@ async function register(req, res) {
   }
 
   if (!emailPattern.test(email)) {
-    return res.status(400).json({ message: "A valid email address is required" });
+    return res.status(400).json({ message: "Please enter a valid Gmail address." });
   }
 
   if (password.length < 6) {
@@ -82,6 +82,10 @@ async function login(req, res) {
 
   if (!email || typeof password !== "string" || !password) {
     return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (!emailPattern.test(email)) {
+    return res.status(400).json({ message: "Please enter a valid Gmail address." });
   }
 
   try {

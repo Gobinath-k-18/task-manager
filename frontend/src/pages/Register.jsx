@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import api from '../api/api'
 import { getToken } from '../api/authStorage'
 import AuthLayout from '../components/AuthLayout'
+import { isValidEmail } from '../utils/emailValidation'
 
 function Register() {
   const navigate = useNavigate()
@@ -17,6 +18,17 @@ function Register() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid Gmail address.')
+      return
+    }
+
+    if (!event.currentTarget.checkValidity()) {
+      event.currentTarget.reportValidity()
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -38,7 +50,7 @@ function Register() {
       <h2>Create your account</h2>
       <p className="auth-intro">It only takes a moment to get started.</p>
       {error && <p className="form-alert" role="alert">{error}</p>}
-      <form className="form-stack" onSubmit={handleSubmit}>
+      <form className="form-stack" onSubmit={handleSubmit} noValidate>
         <div className="field">
           <label htmlFor="register-name">Full name</label>
           <input
