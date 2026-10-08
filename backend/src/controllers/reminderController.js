@@ -1,4 +1,5 @@
 const { processDueDateReminders } = require("../services/dueDateReminderService");
+const { processRoadmapDailyEmails } = require("../services/roadmapDailyEmailService");
 
 async function sendDueDateReminders(req, res) {
   try {
@@ -10,4 +11,18 @@ async function sendDueDateReminders(req, res) {
   }
 }
 
-module.exports = { sendDueDateReminders };
+async function sendRoadmapDailyEmails(req, res) {
+  try {
+    const summary = await processRoadmapDailyEmails();
+    return res.status(200).json({
+      processed: summary.processed,
+      sent: summary.sent,
+      skipped: summary.skipped,
+      failed: summary.failed,
+    });
+  } catch {
+    return res.status(500).json({ message: "Unable to process roadmap daily emails." });
+  }
+}
+
+module.exports = { sendDueDateReminders, sendRoadmapDailyEmails };

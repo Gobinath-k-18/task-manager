@@ -9,6 +9,14 @@ const api = axios.create({
   },
 })
 
+export function getRoadmaps(config) {
+  return api.get('/roadmaps', config)
+}
+
+export function completeRoadmapDay(roadmapId, dayNumber) {
+  return api.patch(`/roadmaps/${roadmapId}/days/${dayNumber}/complete`)
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('taskManagerToken')
   if (token) {

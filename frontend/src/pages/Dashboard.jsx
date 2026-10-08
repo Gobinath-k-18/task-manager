@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import api from '../api/api'
 import { clearAuth, getUser } from '../api/authStorage'
 import Brand from '../components/Brand'
@@ -135,6 +135,10 @@ function Dashboard({ theme, onToggleTheme }) {
     <main className="dashboard-page">
       <header className="topbar">
         <Brand />
+        <nav className="workspace-nav" aria-label="Workspace">
+          <NavLink to="/dashboard">Tasks</NavLink>
+          <NavLink to="/roadmaps">Roadmaps</NavLink>
+        </nav>
         <div className="topbar-actions">
           <button
             className="theme-toggle"

@@ -80,4 +80,4 @@ async function sendDueDateReminderEmail(task) {
   return sendEmail({ to: task.email, ...message });
 }
 
-module.exports = { sendDueDateReminderEmail, sendWelcomeEmail };
+module.exports = { sendDueDateReminderEmail, sendEmail, sendWelcomeEmail };

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Roadmaps from './pages/Roadmaps'
 
 function App() {
   const [theme, setTheme] = useState(
@@ -27,6 +28,28 @@ function App() {
           element={(
             <ProtectedRoute>
               <Dashboard
+                theme={theme}
+                onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
+              />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/roadmaps"
+          element={(
+            <ProtectedRoute>
+              <Roadmaps
+                theme={theme}
+                onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
+              />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/roadmaps/:roadmapId"
+          element={(
+            <ProtectedRoute>
+              <Roadmaps
                 theme={theme}
                 onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
               />
