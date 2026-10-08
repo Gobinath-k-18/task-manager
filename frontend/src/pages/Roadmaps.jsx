@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
-import { completeRoadmapDay, getRoadmaps } from '../api/api'
+import { chatWithRoadmap, completeRoadmapDay, getRoadmaps } from '../api/api'
 import { clearAuth, getUser } from '../api/authStorage'
 import Brand from '../components/Brand'
 
@@ -122,6 +122,120 @@ function RoadmapDay({ day, currentDay, roadmapStatus, onComplete, isCompleting }
         )}
       </div>
     </article>
+  )
+}
+
+function RoadmapChat({ roadmap }) {
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Hi! I’m your AI Learning Assistant. Ask me anything about today’s learning task.',
+    },
+  ])
+  const [message, setMessage] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSend(event) {
+    event?.preventDefault()
+    const trimmedMessage = message.trim()
+    if (!trimmedMessage || isSending) return
+
+    setIsSending(true)
+    setError('')
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: trimmedMessage,
+    }
+    setMessages((currentMessages) => [...currentMessages, userMessage])
+
+    try {
+      const { data } = await chatWithRoadmap(roadmap.id, trimmedMessage)
+      if (typeof data?.answer !== 'string' || !data.answer.trim()) {
+        throw new Error('Empty assistant response')
+      }
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: data.answer,
+        },
+      ])
+      setMessage('')
+    } catch {
+      setError('Sorry, I couldn’t get an answer right now. Please try again.')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      handleSend(event)
+    }
+  }
+
+  return (
+    <section className="roadmap-chat" aria-labelledby="roadmap-chat-title">
+      <div className="roadmap-chat-heading">
+        <span className="roadmap-chat-icon" aria-hidden="true">✦</span>
+        <div>
+          <h2 id="roadmap-chat-title">AI Learning Assistant</h2>
+          <p>Ask questions about your current roadmap and learning task.</p>
+        </div>
+      </div>
+
+      <div className="roadmap-chat-messages" aria-live="polite" aria-label="Chat messages">
+        {messages.map((chatMessage) => (
+          <div
+            className={`roadmap-chat-message ${chatMessage.role}`}
+            key={chatMessage.id}
+          >
+            <span className="roadmap-chat-message-label">
+              {chatMessage.role === 'user' ? 'You' : 'Assistant'}
+            </span>
+            <p>{chatMessage.content}</p>
+          </div>
+        ))}
+        {isSending && (
+          <div className="roadmap-chat-message assistant" role="status">
+            <span className="roadmap-chat-message-label">Assistant</span>
+            <p>Thinking...</p>
+          </div>
+        )}
+      </div>
+
+      {error && <p className="roadmap-chat-error" role="alert">{error}</p>}
+
+      <form className="roadmap-chat-form" onSubmit={handleSend}>
+        <label className="visually-hidden" htmlFor="roadmap-chat-input">
+          Ask the AI Learning Assistant
+        </label>
+        <textarea
+          id="roadmap-chat-input"
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about today's learning task..."
+          rows={2}
+          maxLength={2000}
+          disabled={isSending}
+        />
+        <button
+          className="create-task-submit roadmap-chat-send"
+          type="submit"
+          disabled={isSending || !message.trim()}
+        >
+          {isSending ? 'Thinking...' : 'Send'}
+        </button>
+      </form>
+      <p className="roadmap-chat-hint">Press Enter to send · Shift+Enter for a new line</p>
+    </section>
   )
 }
 
@@ -391,6 +505,7 @@ function Roadmaps({ theme, onToggleTheme }) {
                 </div>
               </div>
             )}
+            <RoadmapChat key={selectedRoadmap.id} roadmap={selectedRoadmap} />
           </>
         ) : (
           <>

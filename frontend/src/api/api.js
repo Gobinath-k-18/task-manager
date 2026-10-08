@@ -17,6 +17,10 @@ export function completeRoadmapDay(roadmapId, dayNumber) {
   return api.patch(`/roadmaps/${roadmapId}/days/${dayNumber}/complete`)
 }
 
+export function chatWithRoadmap(roadmapId, message) {
+  return api.post(`/roadmaps/${roadmapId}/chat`, { message })
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('taskManagerToken')
   if (token) {

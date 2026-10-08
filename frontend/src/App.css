@@ -268,6 +268,26 @@
 .roadmap-day-card.upcoming { background: #fafbfc; }
 .roadmap-day-card.upcoming .roadmap-day-content { opacity: 0.82; }
 .roadmap-state-link { width: fit-content; margin: 18px auto 0; }
+.roadmap-chat { margin-top: 34px; padding: 22px; border: 1px solid #e8ecf4; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(41, 57, 89, 0.035); }
+.roadmap-chat-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.roadmap-chat-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 13px; background: #edf2ff; color: #4668ca; }
+.roadmap-chat-heading h2 { margin: 0; color: #293650; font-size: 1.05rem; font-weight: 720; letter-spacing: -0.025em; }
+.roadmap-chat-heading p { margin: 5px 0 0; color: #818da1; font-size: 0.82rem; line-height: 1.5; }
+.roadmap-chat-messages { display: grid; max-height: 420px; gap: 12px; overflow-y: auto; padding: 15px; border: 1px solid #edf0f5; border-radius: 12px; background: #f8f9fc; }
+.roadmap-chat-message { width: fit-content; max-width: min(88%, 620px); padding: 10px 13px; border: 1px solid #e3e8f1; border-radius: 12px; background: #fff; }
+.roadmap-chat-message.user { justify-self: end; border-color: #d7e0fb; background: #edf2ff; }
+.roadmap-chat-message.assistant { justify-self: start; }
+.roadmap-chat-message-label { display: block; margin-bottom: 4px; color: #78849a; font-size: 0.68rem; font-weight: 750; }
+.roadmap-chat-message p { overflow-wrap: anywhere; margin: 0; color: #35415a; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; }
+.roadmap-chat-error { margin: 12px 0 0; color: #a3313a; font-size: 0.82rem; line-height: 1.5; }
+.roadmap-chat-form { display: flex; align-items: flex-end; gap: 10px; margin-top: 13px; }
+.roadmap-chat textarea { display: block; width: 100%; min-width: 0; min-height: 48px; max-height: 150px; flex: 1; padding: 11px 13px; border: 1px solid #dce2ec; border-radius: 10px; outline: none; background: #fff; color: #35415a; font: inherit; font-size: 0.86rem; line-height: 1.5; resize: vertical; }
+.roadmap-chat textarea::placeholder { color: #a1aabd; }
+.roadmap-chat textarea:focus-visible { border-color: #5274d4; box-shadow: 0 0 0 4px rgba(70, 103, 206, 0.12); }
+.roadmap-chat-send { width: auto; min-width: 82px; min-height: 48px; margin: 0; padding-inline: 16px; }
+.roadmap-chat-send:disabled { cursor: not-allowed; opacity: 0.58; }
+.roadmap-chat-hint { margin: 8px 0 0; color: #8993a4; font-size: 0.72rem; text-align: right; }
+.roadmap-chat .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 
 :root[data-theme='dark'] .workspace-nav a { color: #a2aec2; }
 :root[data-theme='dark'] .workspace-nav a:hover { background: #253247; color: #c4d1ff; }
@@ -303,6 +323,19 @@
 :root[data-theme='dark'] .roadmap-day-card.completed .roadmap-day-marker { border-color: #3b6e54; background: #203e34; color: #91d8b2; }
 :root[data-theme='dark'] .roadmap-day-card.completed .roadmap-day-heading h3 { color: #b6dfc7; }
 :root[data-theme='dark'] .roadmap-day-card.upcoming { background: #182231; }
+:root[data-theme='dark'] .roadmap-chat { border-color: #2e3a4d; background: #1b2637; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18); }
+:root[data-theme='dark'] .roadmap-chat-icon { background: #293956; color: #a9beff; }
+:root[data-theme='dark'] .roadmap-chat-heading h2 { color: #e8edf7; }
+:root[data-theme='dark'] .roadmap-chat-heading p,
+:root[data-theme='dark'] .roadmap-chat-hint { color: #a2aec2; }
+:root[data-theme='dark'] .roadmap-chat-messages { border-color: #303d51; background: #141e2d; }
+:root[data-theme='dark'] .roadmap-chat-message { border-color: #39465b; background: #1b2637; }
+:root[data-theme='dark'] .roadmap-chat-message.user { border-color: #465d91; background: #293956; }
+:root[data-theme='dark'] .roadmap-chat-message-label { color: #a2aec2; }
+:root[data-theme='dark'] .roadmap-chat-message p { color: #d2dbea; }
+:root[data-theme='dark'] .roadmap-chat-error { color: #ffc1c5; }
+:root[data-theme='dark'] .roadmap-chat textarea { border-color: #39465b; background: #141e2d; color: #e8edf7; }
+:root[data-theme='dark'] .roadmap-chat textarea::placeholder { color: #8997ad; }
 
 @media (max-width: 900px) {
   .roadmap-overview { grid-template-columns: minmax(95px, 0.35fr) minmax(115px, 0.45fr) minmax(0, 1fr); gap: 16px; padding-inline: 18px; }
@@ -329,6 +362,12 @@
   .roadmap-overview { gap: 14px; padding: 17px; }
   .roadmap-days-header { align-items: flex-start; }
   .roadmap-day-heading { flex-direction: column; }
+  .roadmap-chat { padding: 16px; }
+  .roadmap-chat-messages { max-height: 360px; padding: 10px; }
+  .roadmap-chat-message { max-width: 94%; }
+  .roadmap-chat-form { align-items: stretch; flex-direction: column; }
+  .roadmap-chat-send { width: 100%; }
+  .roadmap-chat-hint { text-align: left; }
 }
 
 :root[data-theme='dark'] .app-shell {
