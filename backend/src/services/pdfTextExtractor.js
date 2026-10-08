@@ -1,5 +1,4 @@
 const { readFile } = require("node:fs/promises");
-const { PDFParse } = require("pdf-parse");
 
 async function extractPdfText(input) {
   let data;
@@ -24,6 +23,7 @@ async function extractPdfText(input) {
 
   let parser;
   try {
+    const { PDFParse } = require("pdf-parse");
     parser = new PDFParse({ data });
     const result = await parser.getText();
 
