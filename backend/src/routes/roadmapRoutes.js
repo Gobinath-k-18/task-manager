@@ -6,6 +6,7 @@ const {
   createRoadmap,
   getRoadmaps,
 } = require("../controllers/roadmapController");
+const { chatAboutRoadmap } = require("../controllers/roadmapChatController");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -28,6 +29,7 @@ const upload = multer({
 const router = express.Router();
 
 router.get("/", authMiddleware, getRoadmaps);
+router.post("/:roadmapId/chat", authMiddleware, chatAboutRoadmap);
 router.patch(
   "/:roadmapId/days/:dayNumber/complete",
   authMiddleware,
