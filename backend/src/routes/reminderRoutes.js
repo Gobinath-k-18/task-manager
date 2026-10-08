@@ -9,6 +9,7 @@ const {
 const router = express.Router();
 
 router.get("/due-date", cronAuthMiddleware, sendDueDateReminders);
+router.get("/roadmap-daily", roadmapCronAuthMiddleware, sendRoadmapDailyEmails);
 router.post("/roadmap-daily", roadmapCronAuthMiddleware, sendRoadmapDailyEmails);
 
 module.exports = router;
