@@ -116,6 +116,111 @@ test("retries json_validate_failed once with the explicit retry prompt", async (
   assert.match(requests[1].messages[0].content, /Before responding, verify/);
 });
 
+test("logs only structural diagnostics for a failed generation", async () => {
+  process.env.GROQ_API_KEY = "diagnostic-test-api-key";
+  const generatedContent = JSON.stringify({
+    title: "PRIVATE_GENERATED_TITLE",
+    unexpected_secret_field: "PRIVATE_GENERATED_VALUE",
+    days: [
+      {
+        day_number: 1,
+        title: "PRIVATE_DAY_TITLE",
+        description: "PRIVATE_DAY_DESCRIPTION",
+        topics: ["PRIVATE_TOPIC"],
+      },
+      {
+        day_number: 4,
+        title: "PRIVATE_DAY_TITLE_TWO",
+        description: "PRIVATE_DAY_DESCRIPTION_TWO",
+        topics: ["PRIVATE_TOPIC_TWO"],
+      },
+    ],
+  });
+  const validationError = new Error("Failed to validate JSON.");
+  validationError.status = 400;
+  validationError.error = {
+    error: {
+      message: "Failed to validate JSON.",
+      type: "invalid_request_error",
+      code: "json_validate_failed",
+      failed_generation: generatedContent,
+    },
+  };
+  const requests = [];
+  const loggedLines = [];
+  const originalConsoleError = console.error;
+  console.error = (...args) => loggedLines.push(JSON.stringify(args));
+
+  try {
+    await generateRoadmapFromText(
+      sourceText,
+      fakeGroq([validationError, createRoadmap(50)], requests),
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  const diagnostics = loggedLines.join("\n");
+  assert.match(diagnostics, /Groq failed-generation structure/);
+  assert.match(diagnostics, /"jsonParse":"succeeded"/);
+  assert.match(diagnostics, /"missingFields":\["roadmap\.description"\]/);
+  assert.match(diagnostics, /"unexpectedFields":\["roadmap\.unexpected_secret_field"\]/);
+  assert.match(diagnostics, /"dayCount":2/);
+  assert.match(diagnostics, /"nonSequentialDayNumbers"/);
+  assert.match(diagnostics, /"applicationValidationPassed":false/);
+  for (const sensitiveValue of [
+    generatedContent,
+    "PRIVATE_GENERATED_TITLE",
+    "PRIVATE_GENERATED_VALUE",
+    "PRIVATE_DAY_TITLE",
+    "PRIVATE_DAY_DESCRIPTION",
+    "PRIVATE_TOPIC",
+    sourceText,
+    "diagnostic-test-api-key",
+  ]) {
+    assert.equal(diagnostics.includes(sensitiveValue), false);
+  }
+});
+
+test("reports failed_generation absence using only provider field metadata", async () => {
+  process.env.GROQ_API_KEY = "diagnostic-test-api-key";
+  const validationError = new Error("Failed to validate JSON.");
+  validationError.status = 400;
+  validationError.error = {
+    error: {
+      message: "Failed to validate JSON.",
+      code: "json_validate_failed",
+      request_id: "safe-request-id",
+    },
+  };
+  const retryError = new Error("Retry failed.");
+  retryError.status = 503;
+  retryError.error = { error: { code: "server_error" } };
+  const loggedLines = [];
+  const originalConsoleError = console.error;
+  console.error = (...args) => loggedLines.push(JSON.stringify(args));
+
+  try {
+    await assert.rejects(
+      generateRoadmapFromText(
+        sourceText,
+        fakeGroq([validationError, retryError]),
+      ),
+      /Groq roadmap generation failed/,
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  const diagnostics = loggedLines.join("\n");
+  assert.match(diagnostics, /"failedGeneration":"absent"/);
+  assert.match(diagnostics, /"path":"error.code","type":"string"/);
+  assert.match(diagnostics, /"path":"error.request_id","type":"string"/);
+  assert.equal(diagnostics.includes("safe-request-id"), false);
+  assert.equal(diagnostics.includes(sourceText), false);
+  assert.equal(diagnostics.includes("diagnostic-test-api-key"), false);
+});
+
 test("validates plans up to 90 days and rejects plans over the limit", () => {
   assert.equal(validateRoadmap(createRoadmap(90)).days.length, 90);
   assert.throws(() => validateRoadmap(createRoadmap(91)), /between one and 90 days/);
