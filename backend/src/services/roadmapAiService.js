@@ -12,7 +12,7 @@ const roadmapResponseSchema = {
       items: {
         type: "object",
         properties: {
-          day_number: { type: "integer", minimum: 1, maximum: 90 },
+          day_number: { type: "integer" },
           title: { type: "string" },
           description: { type: "string" },
           topics: {
@@ -23,8 +23,6 @@ const roadmapResponseSchema = {
         required: ["day_number", "title", "description", "topics"],
         additionalProperties: false,
       },
-      minItems: 1,
-      maxItems: 90,
     },
   },
   required: ["title", "description", "days"],
