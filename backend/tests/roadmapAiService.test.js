@@ -2,7 +2,6 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   generateRoadmapFromText,
-  roadmapResponseSchema,
   validateRoadmap,
 } = require("../src/services/roadmapAiService");
 
@@ -10,19 +9,6 @@ const sourceText = Array.from(
   { length: 50 },
   (_, index) => `Day ${index + 1}: Study the distinct MERN interview topic ${index + 1}.`,
 ).join("\n");
-
-function assertStrictSchema(schema) {
-  if (schema.type === "object") {
-    assert.equal(schema.additionalProperties, false);
-    assert.deepEqual(
-      [...schema.required].sort(),
-      Object.keys(schema.properties).sort(),
-    );
-    Object.values(schema.properties).forEach(assertStrictSchema);
-  } else if (schema.type === "array") {
-    assertStrictSchema(schema.items);
-  }
-}
 
 function createRoadmap(days) {
   return {
@@ -46,7 +32,13 @@ function fakeGroq(responses, requests = []) {
           const response = responses.shift();
           if (response instanceof Error) throw response;
           return {
-            choices: [{ message: { content: JSON.stringify(response) } }],
+            choices: [{
+              message: {
+                content: Object.hasOwn(response, "rawContent")
+                  ? response.rawContent
+                  : JSON.stringify(response),
+              },
+            }],
           };
         },
       },
@@ -54,7 +46,7 @@ function fakeGroq(responses, requests = []) {
   };
 }
 
-test("sends a strict schema and validates a source-based 50-day roadmap", async () => {
+test("uses JSON Object Mode and validates a source-based 50-day roadmap", async () => {
   process.env.GROQ_API_KEY = "local-test-key";
   const requests = [];
   const roadmap = await generateRoadmapFromText(
@@ -70,32 +62,10 @@ test("sends a strict schema and validates a source-based 50-day roadmap", async 
   const persistedRoadmap = { ...roadmap, total_days: roadmap.days.length };
   assert.equal(persistedRoadmap.total_days, 50);
 
-  const schema = requests[0].response_format.json_schema.schema;
-  assert.equal(requests[0].response_format.type, "json_schema");
-  assert.equal(requests[0].response_format.json_schema.name, "learning_roadmap");
-  assert.equal(requests[0].response_format.json_schema.strict, true);
-  assertStrictSchema(schema);
-  assert.equal(schema.type, "object");
-  assert.equal(schema.properties.title.type, "string");
-  assert.equal(schema.properties.description.type, "string");
-  assert.deepEqual(
-    schema.properties.days.items.required,
-    ["day_number", "title", "description", "topics"],
-  );
-  assert.equal(schema.properties.days.items.properties.day_number.type, "integer");
-  assert.equal("minimum" in schema.properties.days.items.properties.day_number, false);
-  assert.equal("maximum" in schema.properties.days.items.properties.day_number, false);
-  assert.equal("minItems" in schema.properties.days, false);
-  assert.equal("maxItems" in schema.properties.days, false);
-  assert.equal(schema.properties.days.items.properties.title.type, "string");
-  assert.equal(schema.properties.days.items.properties.description.type, "string");
-  assert.equal(schema.properties.days.items.properties.topics.type, "array");
-  assert.deepEqual(schema.required, ["title", "description", "days"]);
-  assert.equal(schema.additionalProperties, false);
-  assert.equal(schema.properties.days.items.additionalProperties, false);
-  assert.equal(schema.properties.days.items.properties.topics.items.type, "string");
+  assert.deepEqual(requests[0].response_format, { type: "json_object" });
   assert.match(requests[0].messages[0].content, /up to 90 days/);
-  assert.match(requests[0].messages[0].content, /no Markdown fences/);
+  assert.match(requests[0].messages[0].content, /without Markdown fences/);
+  assert.match(requests[0].messages[0].content, /3–5 concise relevant strings/);
   assert.match(requests[0].messages[1].content, new RegExp(sourceText.slice(0, 30)));
 });
 
@@ -113,7 +83,29 @@ test("retries json_validate_failed once with the explicit retry prompt", async (
 
   assert.equal(roadmap.days.length, 50);
   assert.equal(requests.length, 2);
-  assert.match(requests[1].messages[0].content, /Before responding, verify/);
+  assert.deepEqual(requests[0].response_format, { type: "json_object" });
+  assert.deepEqual(requests[1].response_format, { type: "json_object" });
+  assert.match(requests[1].messages[0].content, /Before responding, check/);
+});
+
+test("retries malformed JSON once and rejects repeated malformed responses safely", async () => {
+  process.env.GROQ_API_KEY = "local-test-key";
+  const requests = [];
+  const malformed = '{"title":"PRIVATE_MALFORMED_CONTENT"';
+  await assert.rejects(
+    generateRoadmapFromText(
+      sourceText,
+      fakeGroq([{ rawContent: malformed }, { rawContent: malformed }], requests),
+    ),
+    (error) => {
+      assert.match(error.message, /Groq returned invalid JSON for the roadmap/);
+      assert.equal(error.message.includes("PRIVATE_MALFORMED_CONTENT"), false);
+      return true;
+    },
+  );
+  assert.equal(requests.length, 2);
+  assert.deepEqual(requests[0].response_format, { type: "json_object" });
+  assert.deepEqual(requests[1].response_format, { type: "json_object" });
 });
 
 test("logs only structural diagnostics for a failed generation", async () => {
@@ -227,6 +219,10 @@ test("validates plans up to 90 days and rejects plans over the limit", () => {
 });
 
 test("rejects invalid or non-sequential day numbers", () => {
+  const missingField = createRoadmap(1);
+  delete missingField.days[0].topics;
+  assert.throws(() => validateRoadmap(missingField), /must have sequential numbering/);
+
   const roadmap = createRoadmap(3);
   roadmap.days[1].day_number = 3;
   assert.throws(() => validateRoadmap(roadmap), /sequential numbering/);
