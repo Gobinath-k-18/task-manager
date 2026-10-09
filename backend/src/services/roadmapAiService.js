@@ -249,6 +249,8 @@ async function generateRoadmapFromText(text, groqClient) {
       response = await groq.chat.completions.create({
         model: "openai/gpt-oss-20b",
         temperature: 0,
+        reasoning_format: "hidden",
+        max_completion_tokens: 12000,
         response_format: { type: "json_object" },
         messages: [
           {

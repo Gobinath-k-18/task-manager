@@ -63,6 +63,8 @@ test("uses JSON Object Mode and validates a source-based 50-day roadmap", async 
   assert.equal(persistedRoadmap.total_days, 50);
 
   assert.deepEqual(requests[0].response_format, { type: "json_object" });
+  assert.equal(requests[0].reasoning_format, "hidden");
+  assert.equal(requests[0].max_completion_tokens, 12000);
   assert.match(requests[0].messages[0].content, /up to 90 days/);
   assert.match(requests[0].messages[0].content, /without Markdown fences/);
   assert.match(requests[0].messages[0].content, /3–5 concise relevant strings/);
@@ -85,6 +87,10 @@ test("retries json_validate_failed once with the explicit retry prompt", async (
   assert.equal(requests.length, 2);
   assert.deepEqual(requests[0].response_format, { type: "json_object" });
   assert.deepEqual(requests[1].response_format, { type: "json_object" });
+  assert.equal(requests[0].reasoning_format, "hidden");
+  assert.equal(requests[1].reasoning_format, "hidden");
+  assert.equal(requests[0].max_completion_tokens, 12000);
+  assert.equal(requests[1].max_completion_tokens, 12000);
   assert.match(requests[1].messages[0].content, /Before responding, check/);
 });
 
