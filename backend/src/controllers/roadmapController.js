@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const { extractPdfText } = require("../services/pdfTextExtractor");
 const { generateRoadmapFromText } = require("../services/roadmapAiService");
+const { sendRoadmapEmailOnce } = require("../services/roadmapDailyEmailService");
 
 async function getRoadmaps(req, res) {
   if (!Number.isSafeInteger(req.userId) || req.userId < 1) {
@@ -286,10 +287,31 @@ async function createRoadmap(req, res) {
 
     await client.query("COMMIT");
     transactionCommitted = true;
+    transactionStarted = false;
+
+    client.release();
+    client = null;
+
+    let day1EmailSent = false;
+    try {
+      const emailResult = await sendRoadmapEmailOnce({
+        roadmapId: createdRoadmap.id,
+        dayNumber: 1,
+      });
+      day1EmailSent = emailResult.sent;
+    } catch {
+      console.error("Immediate roadmap Day 1 email failed.", {
+        roadmapId: createdRoadmap.id,
+      });
+    }
 
     return res.status(201).json({
       ...createdRoadmap,
       days,
+      day1EmailSent,
+      ...(!day1EmailSent && {
+        message: "Your roadmap was created, but its Day 1 email could not be sent. We’ll retry it with a daily reminder.",
+      }),
     });
   } catch (error) {
     console.error("Roadmap database transaction failed:", error);

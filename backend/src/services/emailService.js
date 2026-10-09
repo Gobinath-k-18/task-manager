@@ -48,6 +48,20 @@ function getDashboardUrl() {
   return new URL("/dashboard", frontendUrl).toString();
 }
 
+function getRoadmapUrl(roadmapId) {
+  if (!Number.isSafeInteger(roadmapId) || roadmapId < 1) {
+    throw new Error("Roadmap ID must be a valid positive integer");
+  }
+
+  const frontendUrl = new URL(getRequiredEnv("FRONTEND_URL"));
+
+  if (frontendUrl.protocol !== "http:" && frontendUrl.protocol !== "https:") {
+    throw new Error("FRONTEND_URL must use HTTP or HTTPS");
+  }
+
+  return new URL(`/roadmaps/${roadmapId}`, frontendUrl).toString();
+}
+
 async function sendEmail({ to, subject, text, html }) {
   return getTransporter().sendMail({
     from: getRequiredEnv("SMTP_FROM"),
@@ -80,4 +94,9 @@ async function sendDueDateReminderEmail(task) {
   return sendEmail({ to: task.email, ...message });
 }
 
-module.exports = { sendDueDateReminderEmail, sendEmail, sendWelcomeEmail };
+module.exports = {
+  getRoadmapUrl,
+  sendDueDateReminderEmail,
+  sendEmail,
+  sendWelcomeEmail,
+};

@@ -14,7 +14,14 @@ function escapeHtml(value) {
   });
 }
 
-async function sendRoadmapDayEmail({ email, name, roadmapTitle, day }) {
+async function sendRoadmapDayEmail({
+  email,
+  name,
+  roadmapTitle,
+  roadmapUrl,
+  day,
+  isWelcome = false,
+}) {
   if (
     typeof email !== "string" ||
     !email.trim() ||
@@ -39,7 +46,14 @@ async function sendRoadmapDayEmail({ email, name, roadmapTitle, day }) {
     .join("");
   const subjectTitle = day.title.replace(/[\r\n]+/g, " ").trim();
   const subject = `TaskFlow — Day ${day.day_number}: ${subjectTitle}`;
-  const text = `Hi ${name},\n\nYour learning roadmap: ${roadmapTitle}\nDay ${day.day_number}: ${day.title}\n\n${day.description}\n\nTopics:\n${day.topics.map((topic) => `- ${topic}`).join("\n")}\n\nPlease complete today's task before moving to the next day.\n\nTaskFlow`;
+  const greeting = isWelcome
+    ? `Welcome to your learning roadmap, ${roadmapTitle}!`
+    : `Your learning roadmap: ${roadmapTitle}`;
+  const text = `Hi ${name},\n\n${greeting}\nDay ${day.day_number}: ${day.title}\n\n${day.description}\n\nTopics:\n${day.topics.map((topic) => `- ${topic}`).join("\n")}\n\nPlease complete today's task before moving to the next day.${roadmapUrl ? `\n\nOpen your roadmap: ${roadmapUrl}` : ""}\n\nTaskFlow`;
+  const safeRoadmapUrl = typeof roadmapUrl === "string" ? escapeHtml(roadmapUrl) : "";
+  const roadmapLink = safeRoadmapUrl
+    ? `<p style="margin:0 0 22px;"><a href="${safeRoadmapUrl}" style="color:#315ac1; font-weight:bold;">Open your learning roadmap</a></p>`
+    : "";
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -62,7 +76,7 @@ async function sendRoadmapDayEmail({ email, name, roadmapTitle, day }) {
             <tr>
               <td style="padding:32px; font-size:16px; line-height:25px;">
                 <h1 style="margin:0 0 12px; color:#111827; font-size:24px; line-height:32px;">Day ${day.day_number}: ${safeDayTitle}</h1>
-                <p style="margin:0 0 22px; color:#4b5563;">Hi ${safeName}, here’s your next step in <strong style="color:#1f2937;">${safeRoadmapTitle}</strong>.</p>
+                <p style="margin:0 0 22px; color:#4b5563;">Hi ${safeName}, ${isWelcome ? "welcome to" : "here’s your next step in"} <strong style="color:#1f2937;">${safeRoadmapTitle}</strong>.</p>
                 <p style="margin:0 0 18px; color:#374151;">${safeDayDescription}</p>
                 <h2 style="margin:0 0 12px; color:#111827; font-size:16px; line-height:23px;">Today's topics</h2>
                 <ul style="margin:0 0 24px; padding:0 0 0 22px; color:#374151; font-size:15px; line-height:23px;">
@@ -75,6 +89,7 @@ async function sendRoadmapDayEmail({ email, name, roadmapTitle, day }) {
                     </td>
                   </tr>
                 </table>
+                ${roadmapLink}
               </td>
             </tr>
             <tr>
