@@ -42,55 +42,60 @@ function Register() {
   }
 
   return (
-    <AuthLayout
-      eyebrow="A fresh start"
-      title="Make your next step a clear one."
-      description="Set up your workspace and turn the things you want to do into a plan you can follow."
-    >
+    <AuthLayout>
       <h2>Create your account</h2>
       <p className="auth-intro">It only takes a moment to get started.</p>
       {error && <p className="form-alert" role="alert">{error}</p>}
       <form className="form-stack" onSubmit={handleSubmit} noValidate>
         <div className="field">
           <label htmlFor="register-name">Full name</label>
-          <input
-            id="register-name"
-            name="name"
-            type="text"
-            autoComplete="name"
-            placeholder="Your name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            maxLength={100}
-            required
-          />
+          <div className="auth-input-wrap">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="6.5" r="3" stroke="currentColor" strokeWidth="1.4" /><path d="M3.5 17c.5-3 2.7-4.5 6.5-4.5s6 1.5 6.5 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+            <input
+              id="register-name"
+              name="name"
+              type="text"
+              autoComplete="name"
+              placeholder="Your name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={100}
+              required
+            />
+          </div>
         </div>
         <div className="field">
           <label htmlFor="register-email">Email address</label>
-          <input
-            id="register-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+          <div className="auth-input-wrap">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="m3.5 5 6.5 5 6.5-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <input
+              id="register-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
         </div>
         <div className="field">
           <label htmlFor="register-password">Password</label>
-          <input
-            id="register-password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder="At least 6 characters"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={6}
-            required
-          />
+          <div className="auth-input-wrap">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3.5" y="8.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M6.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><circle cx="10" cy="12.5" r="1" fill="currentColor" /></svg>
+            <input
+              id="register-password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={6}
+              required
+            />
+          </div>
         </div>
         <button className="primary-button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Creating account…' : 'Create account'}

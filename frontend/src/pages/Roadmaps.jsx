@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { chatWithRoadmap, completeRoadmapDay, getRoadmaps, uploadRoadmap } from '../api/api'
-import { clearAuth, getUser } from '../api/authStorage'
-import Brand from '../components/Brand'
+import { clearAuth } from '../api/authStorage'
+import AppShell from '../components/AppShell'
 
 const MAX_ROADMAP_FILE_SIZE = 10 * 1024 * 1024
 
@@ -212,7 +212,12 @@ function RoadmapChat({ roadmap }) {
         )}
       </div>
 
-      {error && <p className="roadmap-chat-error" role="alert">{error}</p>}
+      {error && (
+        <p className="roadmap-chat-error" role="alert">
+          {error}
+          <button type="button" onClick={() => handleSend()}>Try again</button>
+        </p>
+      )}
 
       <form className="roadmap-chat-form" onSubmit={handleSend}>
         <label className="visually-hidden" htmlFor="roadmap-chat-input">
@@ -245,7 +250,6 @@ function Roadmaps({ theme, onToggleTheme }) {
   const navigate = useNavigate()
   const { roadmapId } = useParams()
   const fileInputRef = useRef(null)
-  const user = getUser()
   const [roadmaps, setRoadmaps] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -312,12 +316,7 @@ function Roadmaps({ theme, onToggleTheme }) {
     setReloadKey((key) => key + 1)
   }
 
-  async function handleRoadmapFileChange(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
-    setSelectedFile(file)
+  async function uploadSelectedRoadmap(file) {
     setUploadError('')
     setUploadSuccess('')
 
@@ -363,6 +362,14 @@ function Roadmaps({ theme, onToggleTheme }) {
       setIsUploading(false)
       setUploadProgress(null)
     }
+  }
+
+  async function handleRoadmapFileChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setSelectedFile(file)
+    await uploadSelectedRoadmap(file)
   }
 
   async function handleCompleteDay(dayNumber) {
@@ -413,37 +420,13 @@ function Roadmaps({ theme, onToggleTheme }) {
     }
   }
 
-  const initials = user?.name?.trim().charAt(0) || 'U'
   const totalDays = Number(selectedRoadmap?.total_days) || selectedRoadmap?.days?.length || 0
   const progress = selectedRoadmap ? getProgress(selectedRoadmap) : 0
   const completedDays = selectedRoadmap ? getCompletedDays(selectedRoadmap) : 0
 
   return (
-    <main className="dashboard-page">
-      <header className="topbar">
-        <Brand />
-        <nav className="workspace-nav" aria-label="Workspace">
-          <NavLink to="/dashboard">Tasks</NavLink>
-          <NavLink to="/roadmaps">Roadmaps</NavLink>
-        </nav>
-        <div className="topbar-actions">
-          <button
-            className="theme-toggle"
-            type="button"
-            onClick={onToggleTheme}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
-          </button>
-          <div className="user-chip">
-            <span className="avatar" aria-hidden="true">{initials}</span>
-            <span>{user?.name || 'Your workspace'}</span>
-          </div>
-          <button className="secondary-button" type="button" onClick={handleLogout}>Log out</button>
-        </div>
-      </header>
-
+    <AppShell theme={theme} onToggleTheme={onToggleTheme} onLogout={handleLogout}>
+      <div className="dashboard-page">
       <section className="dashboard-content roadmap-content" aria-labelledby="roadmaps-title">
         {roadmapId && (
           <Link className="roadmap-back-link" to="/roadmaps">
@@ -538,7 +521,7 @@ function Roadmaps({ theme, onToggleTheme }) {
             <div className="roadmap-days-header">
               <div>
                 <h2>Day-by-day plan</h2>
-                <p>Take it one step at a time. Your progress is saved as you go.</p>
+                <p>Complete today’s lesson to unlock the next step. Your progress is saved as you go.</p>
               </div>
               <span className="task-count">{selectedRoadmap.days?.length || 0} days</span>
             </div>
@@ -572,9 +555,9 @@ function Roadmaps({ theme, onToggleTheme }) {
           <>
             <div className="dashboard-heading">
               <div>
-                <p className="eyebrow"><span className="eyebrow-dot" /> KEEP GROWING</p>
-                <h1 id="roadmaps-title">Your roadmaps</h1>
-                <p>Learning plans to help you reach your next goal.</p>
+                <p className="eyebrow"><span className="eyebrow-dot" /> YOUR LEARNING LIBRARY</p>
+                <h1 id="roadmaps-title">Learn with a plan.</h1>
+                <p>Turn what you want to know into a clear, day-by-day journey.</p>
               </div>
               <div className="summary-card" aria-label={`${roadmaps.length} learning roadmaps`}>
                 <span className="summary-icon" aria-hidden="true">✦</span>
@@ -586,6 +569,11 @@ function Roadmaps({ theme, onToggleTheme }) {
             </div>
 
             <div className="roadmap-upload-panel">
+              <span className="roadmap-upload-icon" aria-hidden="true">↥</span>
+              <div className="roadmap-upload-copy">
+                <strong>Add a learning roadmap</strong>
+                <span>Upload a PDF and we’ll map out your next steps.</span>
+              </div>
               <input
                 ref={fileInputRef}
                 className="roadmap-upload-input"
@@ -600,11 +588,20 @@ function Roadmaps({ theme, onToggleTheme }) {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
               >
-                {isUploading ? 'Uploading…' : 'Upload Roadmap'}
+                {isUploading ? 'Uploading…' : 'Choose a PDF'}
               </button>
               <span className="roadmap-upload-filename" id="roadmap-upload-help">
                 {selectedFile?.name || 'Choose a PDF file up to 10 MB.'}
               </span>
+              {uploadError && selectedFile && !isUploading && (
+                <button
+                  className="roadmap-retry-button"
+                  type="button"
+                  onClick={() => uploadSelectedRoadmap(selectedFile)}
+                >
+                  Retry upload
+                </button>
+              )}
               {isUploading && (
                 <div className="upload-progress roadmap-upload-progress" role="status">
                   {uploadProgress === null ? (
@@ -637,11 +634,12 @@ function Roadmaps({ theme, onToggleTheme }) {
               <div className="task-state">
                 <div className="task-state-inner">
                   <span className="state-icon" aria-hidden="true">✦</span>
-                  <h2>Your learning journey starts here</h2>
-                  <p>You don’t have any roadmaps yet. Once a roadmap is created, it will appear here.</p>
-                  <Link className="secondary-button roadmap-state-link" to="/dashboard">
-                    Back to tasks
-                  </Link>
+                  <span className="state-icon" aria-hidden="true">⌁</span>
+                  <h2>Your first learning journey starts here</h2>
+                  <p>Upload a PDF roadmap to turn your goal into focused daily lessons. Your saved plans will live here.</p>
+                  <button className="secondary-button roadmap-state-link" type="button" onClick={() => fileInputRef.current?.click()}>
+                    Choose your first PDF
+                  </button>
                 </div>
               </div>
             ) : (
@@ -654,7 +652,8 @@ function Roadmaps({ theme, onToggleTheme }) {
           </>
         )}
       </section>
-    </main>
+      </div>
+    </AppShell>
   )
 }
 
