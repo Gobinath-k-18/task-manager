@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
-import { chatWithRoadmap, completeRoadmapDay, getRoadmaps } from '../api/api'
+import { chatWithRoadmap, completeRoadmapDay, getRoadmaps, uploadRoadmap } from '../api/api'
 import { clearAuth, getUser } from '../api/authStorage'
 import Brand from '../components/Brand'
+
+const MAX_ROADMAP_FILE_SIZE = 10 * 1024 * 1024
 
 function getCompletedDays(roadmap) {
   if (roadmap.status === 'completed') return roadmap.total_days || roadmap.days?.length || 0
@@ -242,10 +244,16 @@ function RoadmapChat({ roadmap }) {
 function Roadmaps({ theme, onToggleTheme }) {
   const navigate = useNavigate()
   const { roadmapId } = useParams()
+  const fileInputRef = useRef(null)
   const user = getUser()
   const [roadmaps, setRoadmaps] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
+  const [uploadError, setUploadError] = useState('')
+  const [uploadSuccess, setUploadSuccess] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [completingDay, setCompletingDay] = useState(null)
   const [completionMessage, setCompletionMessage] = useState('')
@@ -302,6 +310,59 @@ function Roadmaps({ theme, onToggleTheme }) {
     setError('')
     setIsLoading(true)
     setReloadKey((key) => key + 1)
+  }
+
+  async function handleRoadmapFileChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setSelectedFile(file)
+    setUploadError('')
+    setUploadSuccess('')
+
+    if (!file.name.toLowerCase().endsWith('.pdf') || (file.type && file.type !== 'application/pdf')) {
+      setUploadError('Please choose a PDF file.')
+      return
+    }
+
+    if (file.size > MAX_ROADMAP_FILE_SIZE) {
+      setUploadError('This PDF is larger than 10 MB. Choose a smaller file.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('document', file)
+    setIsUploading(true)
+    setUploadProgress(null)
+
+    try {
+      await uploadRoadmap(formData, {
+        onUploadProgress: ({ loaded, total }) => {
+          if (total) setUploadProgress(Math.round((loaded / total) * 100))
+        },
+      })
+      setUploadSuccess('Roadmap uploaded successfully. Your list has been refreshed.')
+      setReloadKey((key) => key + 1)
+    } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        clearAuth()
+        navigate('/login', { replace: true })
+        return
+      }
+
+      const responseMessage = requestError.response?.data?.message
+      setUploadError(
+        requestError.response?.status === 413
+          ? 'This PDF is larger than the upload limit. Choose a smaller file.'
+          : typeof responseMessage === 'string' && responseMessage.trim()
+            ? responseMessage
+            : 'We couldn’t upload this PDF. Please check your connection and try again.',
+      )
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(null)
+    }
   }
 
   async function handleCompleteDay(dayNumber) {
@@ -522,6 +583,54 @@ function Roadmaps({ theme, onToggleTheme }) {
                   <span className="summary-label">Learning plans</span>
                 </span>
               </div>
+            </div>
+
+            <div className="roadmap-upload-panel">
+              <input
+                ref={fileInputRef}
+                className="roadmap-upload-input"
+                type="file"
+                accept=".pdf,application/pdf"
+                aria-label="Choose a PDF roadmap"
+                onChange={handleRoadmapFileChange}
+              />
+              <button
+                className="create-task-button roadmap-upload-button"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading…' : 'Upload Roadmap'}
+              </button>
+              <span className="roadmap-upload-filename" id="roadmap-upload-help">
+                {selectedFile?.name || 'Choose a PDF file up to 10 MB.'}
+              </span>
+              {isUploading && (
+                <div className="upload-progress roadmap-upload-progress" role="status">
+                  {uploadProgress === null ? (
+                    <span>Uploading {selectedFile?.name}…</span>
+                  ) : uploadProgress < 100 ? (
+                    <>
+                      <span>Uploading PDF · {uploadProgress}%</span>
+                      <progress
+                        max="100"
+                        value={uploadProgress}
+                        aria-label="Roadmap PDF upload progress"
+                      />
+                    </>
+                  ) : (
+                    <span>PDF uploaded. Generating your roadmap…</span>
+                  )}
+                </div>
+              )}
+              {uploadError && (
+                <p className="form-alert roadmap-upload-error" role="alert">{uploadError}</p>
+              )}
+              {uploadSuccess && (
+                <p className="task-success-message success roadmap-upload-success" role="status">
+                  <span aria-hidden="true">✓</span>{uploadSuccess}
+                </p>
+              )}
             </div>
 
             {roadmaps.length === 0 ? (

@@ -13,6 +13,16 @@ export function getRoadmaps(config) {
   return api.get('/roadmaps', config)
 }
 
+export function uploadRoadmap(document, config) {
+  return api.post('/roadmaps', document, {
+    ...config,
+    headers: {
+      ...config?.headers,
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
+
 export function completeRoadmapDay(roadmapId, dayNumber) {
   return api.patch(`/roadmaps/${roadmapId}/days/${dayNumber}/complete`)
 }
