@@ -40,6 +40,8 @@
   --coral-soft: #fff0eb;
   --coral-border: #f0d1c8;
   --navy: #263845;
+  --auth-card-width: 440px;
+  --auth-page-gutter: 20px;
   --track: #e8ece7;
   --radius-sm: 10px;
   --radius: 13px;
@@ -83,6 +85,7 @@
   --coral-soft: #442e2d;
   --coral-border: #694440;
   --navy: #e4eceb;
+  --auth-page-gutter: 16px;
   --track: #2d3a3d;
   --shadow-soft: 0 3px 10px rgba(0, 0, 0, 0.13);
   --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.22);
