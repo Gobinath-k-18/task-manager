@@ -1,5 +1,27 @@
 const { readFile } = require("node:fs/promises");
 
+function getReadableText(text) {
+  if (typeof text !== "string" || !text.trim()) {
+    throw new Error("PDF contains no readable text.");
+  }
+  return text;
+}
+
+async function extractWithFallback(data) {
+  const { PDFParse } = require("pdf-parse-modern");
+  const { CanvasFactory } = require("pdf-parse-modern/worker");
+  const parser = new PDFParse({ data, CanvasFactory });
+
+  try {
+    const result = await parser.getText();
+    return getReadableText(result.text);
+  } finally {
+    if (typeof parser.destroy === "function") {
+      await parser.destroy();
+    }
+  }
+}
+
 async function extractPdfText(input) {
   let data;
 
@@ -24,20 +46,21 @@ async function extractPdfText(input) {
   try {
     const parsePdf = require("pdf-parse");
     const result = await parsePdf(data);
-
-    if (typeof result.text !== "string" || !result.text.trim()) {
-      throw new Error("PDF contains no readable text.");
+    return getReadableText(result.text);
+  } catch (primaryError) {
+    try {
+      return await extractWithFallback(data);
+    } catch (fallbackError) {
+      throw new Error(
+        "This PDF could not be read. Please re-save or export it as a new PDF and try again.",
+        {
+          cause: new AggregateError(
+            [primaryError, fallbackError],
+            "Both PDF text extraction parsers failed.",
+          ),
+        },
+      );
     }
-
-    return result.text;
-  } catch (error) {
-    if (error instanceof Error && error.message === "PDF contains no readable text.") {
-      throw error;
-    }
-
-    const message =
-      error instanceof Error ? error.message : "An unknown PDF parsing error occurred.";
-    throw new Error(`Unable to extract text from PDF: ${message}`, { cause: error });
   }
 }
 
