@@ -7,6 +7,23 @@ function getReadableText(text) {
   return text;
 }
 
+function getSafeErrorDetails(error) {
+  const name = typeof error?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,59}$/.test(error.name)
+    ? error.name
+    : "Error";
+  const message = typeof error?.message === "string" ? error.message : "";
+  const sanitizedMessage = message
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\b[A-Za-z]:\\[^\s]*/g, "[path]")
+    .replace(/(?:\/[\w.-]+){2,}/g, "[path]")
+    .replace(/https?:\/\/\S+/gi, "[url]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
+
+  return { errorName: name, errorMessage: sanitizedMessage || "Unknown parser error." };
+}
+
 async function extractWithFallback(data) {
   const { PDFParse } = require("pdf-parse-modern");
   const { CanvasFactory } = require("pdf-parse-modern/worker");
@@ -43,14 +60,29 @@ async function extractPdfText(input) {
     throw new Error("PDF file is empty.");
   }
 
+  console.info("PDF extraction input:", { byteLength: data.length });
+
   try {
     const parsePdf = require("pdf-parse");
     const result = await parsePdf(data);
-    return getReadableText(result.text);
+    const text = getReadableText(result.text);
+    console.info("PDF extraction primary parser succeeded:", {
+      parser: "pdf-parse@1.1.1",
+      characterCount: text.length,
+    });
+    return text;
   } catch (primaryError) {
+    console.warn("PDF extraction primary parser failed:", getSafeErrorDetails(primaryError));
+    console.info("PDF extraction fallback parser starting.");
     try {
-      return await extractWithFallback(data);
+      const text = await extractWithFallback(data);
+      console.info("PDF extraction fallback parser succeeded:", {
+        parser: "pdf-parse-modern@2.4.5",
+        characterCount: text.length,
+      });
+      return text;
     } catch (fallbackError) {
+      console.warn("PDF extraction fallback parser failed:", getSafeErrorDetails(fallbackError));
       throw new Error(
         "This PDF could not be read. Please re-save or export it as a new PDF and try again.",
         {

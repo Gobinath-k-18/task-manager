@@ -31,57 +31,94 @@ async function withParserMocks(mocks, callback) {
   }
 }
 
+async function withCapturedLogs(callback) {
+  const records = [];
+  const originalInfo = console.info;
+  const originalWarn = console.warn;
+  console.info = (...args) => records.push(args);
+  console.warn = (...args) => records.push(args);
+
+  try {
+    return { result: await callback(), records };
+  } finally {
+    console.info = originalInfo;
+    console.warn = originalWarn;
+  }
+}
+
 test("loads neither PDF parser when the extractor is imported", () => {
   assert.equal(hasLoadedParser("pdf-parse"), false);
   assert.equal(hasLoadedParser("pdf-parse-modern"), false);
 });
 
 test("primary parser handles Buffer and file-path inputs without loading fallback", async () => {
-  const fromPath = await extractPdfText(samplePdfPath);
-  assert.ok(fromPath.trim().length > 0);
-  assert.equal(hasLoadedParser("pdf-parse-modern"), false);
+  const { records, result } = await withCapturedLogs(async () => {
+    const fromPath = await extractPdfText(samplePdfPath);
+    assert.ok(fromPath.trim().length > 0);
+    assert.equal(hasLoadedParser("pdf-parse-modern"), false);
 
-  const sampleBuffer = await readFile(samplePdfPath);
-  const fromBuffer = await extractPdfText(sampleBuffer);
-  assert.ok(fromBuffer.trim().length > 0);
-  assert.equal(hasLoadedParser("pdf-parse-modern"), false);
+    const sampleBuffer = await readFile(samplePdfPath);
+    const fromBuffer = await extractPdfText(sampleBuffer);
+    assert.ok(fromBuffer.trim().length > 0);
+    assert.equal(hasLoadedParser("pdf-parse-modern"), false);
+    return { fromPath, fromBuffer };
+  });
+
+  assert.ok(result.fromPath.length > 0);
+  assert.ok(result.fromBuffer.length > 0);
+  const logs = JSON.stringify(records);
+  assert.equal((logs.match(/PDF extraction primary parser succeeded/g) || []).length, 2);
+  assert.equal(logs.includes(result.fromPath), false);
+  assert.equal(logs.includes(result.fromBuffer), false);
 });
 
 test("falls back to modern parser after primary failure and destroys parser", async () => {
-  const pdfBuffer = Buffer.from("%PDF-test");
+  const pdfBuffer = Buffer.from("%PDF-private-input");
   const primaryError = new Error("bad XRef entry");
   let parserOptions;
   let destroyed = false;
 
-  const result = await withParserMocks(
-    {
-      "pdf-parse": async () => {
-        throw primaryError;
-      },
-      "pdf-parse-modern": {
-        PDFParse: class {
-          constructor(options) {
-            parserOptions = options;
-          }
-
-          async getText() {
-            return { text: "Fallback extracted text." };
-          }
-
-          async destroy() {
-            destroyed = true;
-          }
+  const { result, records } = await withCapturedLogs(() =>
+    withParserMocks(
+      {
+        "pdf-parse": async () => {
+          throw primaryError;
         },
+        "pdf-parse-modern": {
+          PDFParse: class {
+            constructor(options) {
+              parserOptions = options;
+            }
+
+            async getText() {
+              return { text: "PRIVATE_FALLBACK_TEXT" };
+            }
+
+            async destroy() {
+              destroyed = true;
+            }
+          },
+        },
+        "pdf-parse-modern/worker": { CanvasFactory: class CanvasFactory {} },
       },
-      "pdf-parse-modern/worker": { CanvasFactory: class CanvasFactory {} },
-    },
-    () => extractPdfText(pdfBuffer),
+      () => extractPdfText(pdfBuffer),
+    ),
   );
 
-  assert.equal(result, "Fallback extracted text.");
+  assert.equal(result, "PRIVATE_FALLBACK_TEXT");
   assert.deepEqual(parserOptions.data, pdfBuffer);
   assert.equal(typeof parserOptions.CanvasFactory, "function");
   assert.equal(destroyed, true);
+  const logs = JSON.stringify(records);
+  assert.match(logs, /"byteLength":18/);
+  assert.match(logs, /PDF extraction primary parser failed/);
+  assert.match(logs, /"errorName":"Error"/);
+  assert.match(logs, /bad XRef entry/);
+  assert.match(logs, /PDF extraction fallback parser starting/);
+  assert.match(logs, /PDF extraction fallback parser succeeded/);
+  assert.match(logs, /"parser":"pdf-parse-modern@2.4.5","characterCount":21/);
+  assert.equal(logs.includes("PRIVATE_FALLBACK_TEXT"), false);
+  assert.equal(logs.includes("%PDF-private-input"), false);
 });
 
 test("falls back when primary parser returns no readable text", async () => {
