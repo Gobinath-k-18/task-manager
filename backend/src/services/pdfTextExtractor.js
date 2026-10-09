@@ -21,11 +21,9 @@ async function extractPdfText(input) {
     throw new Error("PDF file is empty.");
   }
 
-  let parser;
   try {
-    const { PDFParse } = require("pdf-parse");
-    parser = new PDFParse({ data });
-    const result = await parser.getText();
+    const parsePdf = require("pdf-parse");
+    const result = await parsePdf(data);
 
     if (typeof result.text !== "string" || !result.text.trim()) {
       throw new Error("PDF contains no readable text.");
@@ -40,10 +38,6 @@ async function extractPdfText(input) {
     const message =
       error instanceof Error ? error.message : "An unknown PDF parsing error occurred.";
     throw new Error(`Unable to extract text from PDF: ${message}`, { cause: error });
-  } finally {
-    if (parser) {
-      await parser.destroy();
-    }
   }
 }
 
