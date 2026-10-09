@@ -156,8 +156,16 @@
 .roadmap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .roadmap-card { display: flex; min-width: 0; flex-direction: column; padding: 19px; color: inherit; text-decoration: none; transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
 .roadmap-card:hover { transform: translateY(-2px); border-color: var(--mint-border); box-shadow: var(--shadow-card); }
-.roadmap-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--mint-strong) 32%, transparent); outline-offset: 3px; }
+.roadmap-card-content:focus-visible { outline: 3px solid color-mix(in srgb, var(--mint-strong) 32%, transparent); outline-offset: 3px; }
 .roadmap-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.roadmap-card-tools { display: flex; align-items: center; gap: 8px; }
+.roadmap-card-content { display: flex; min-width: 0; flex: 1; flex-direction: column; color: inherit; text-decoration: none; }
+.roadmap-card-content:focus-visible { border-radius: 6px; }
+.roadmap-delete-button { display: inline-flex; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-raised); color: var(--muted); cursor: pointer; font: inherit; font-size: 0.66rem; font-weight: 650; transition: background 140ms ease, border-color 140ms ease, color 140ms ease; }
+.roadmap-delete-button svg { width: 14px; height: 14px; }
+.roadmap-delete-button:hover { border-color: var(--danger-border); background: var(--danger-soft); color: var(--danger); }
+.roadmap-delete-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--danger) 28%, transparent); outline-offset: 2px; }
+.roadmap-delete-button:disabled { cursor: not-allowed; opacity: 0.65; }
 .roadmap-card-icon { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--violet-border); border-radius: 10px; background: var(--violet-soft); color: var(--violet); font-size: 1.05rem; }
 .roadmap-card h2 { overflow-wrap: anywhere; margin: 15px 0 0; color: var(--ink); font-size: 0.98rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.4; }
 .roadmap-card-description { display: -webkit-box; overflow: hidden; min-height: 40px; margin: 7px 0 18px; color: var(--muted); font-size: 0.77rem; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -172,6 +180,8 @@
 .roadmap-back-link { display: inline-flex; align-items: center; gap: 7px; margin: -15px 0 22px; color: var(--muted); font-size: 0.76rem; font-weight: 650; text-decoration: none; }
 .roadmap-back-link:hover { color: var(--mint-text); }
 .roadmap-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+.roadmap-detail-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 9px; }
+.roadmap-delete-success { margin: 0 0 14px; }
 .roadmap-detail-heading .eyebrow { margin-bottom: 10px; }
 .roadmap-detail-heading > div > p:last-child { max-width: 700px; margin: 9px 0 0; color: var(--muted); font-size: 0.86rem; line-height: 1.65; }
 .roadmap-overview { display: grid; grid-template-columns: minmax(95px, 0.28fr) minmax(115px, 0.35fr) minmax(0, 1fr); align-items: center; gap: 19px; margin-bottom: 28px; padding: 17px 19px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }

@@ -4,6 +4,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   completeRoadmapDay,
   createRoadmap,
+  deleteRoadmap,
   getRoadmaps,
 } = require("../controllers/roadmapController");
 const { chatAboutRoadmap } = require("../controllers/roadmapChatController");
@@ -29,6 +30,7 @@ const upload = multer({
 const router = express.Router();
 
 router.get("/", authMiddleware, getRoadmaps);
+router.delete("/:roadmapId", authMiddleware, deleteRoadmap);
 router.post("/:roadmapId/chat", authMiddleware, chatAboutRoadmap);
 router.patch(
   "/:roadmapId/days/:dayNumber/complete",

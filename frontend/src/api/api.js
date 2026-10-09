@@ -13,6 +13,10 @@ export function getRoadmaps(config) {
   return api.get('/roadmaps', config)
 }
 
+export function deleteRoadmap(roadmapId) {
+  return api.delete(`/roadmaps/${roadmapId}`)
+}
+
 export function uploadRoadmap(document, config) {
   return api.post('/roadmaps', document, {
     ...config,

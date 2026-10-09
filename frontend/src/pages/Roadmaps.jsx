@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { chatWithRoadmap, completeRoadmapDay, getRoadmaps, uploadRoadmap } from '../api/api'
+import { chatWithRoadmap, completeRoadmapDay, deleteRoadmap, getRoadmaps, uploadRoadmap } from '../api/api'
 import { clearAuth } from '../api/authStorage'
 import AppShell from '../components/AppShell'
+import DeleteTaskDialog from '../components/DeleteTaskDialog'
 
 const MAX_ROADMAP_FILE_SIZE = 10 * 1024 * 1024
 
@@ -26,43 +27,57 @@ function getStatusLabel(status) {
   return 'Pending'
 }
 
-function RoadmapCard({ roadmap }) {
+function RoadmapCard({ roadmap, onDelete }) {
   const progress = getProgress(roadmap)
   const completedDays = getCompletedDays(roadmap)
 
   return (
-    <Link className="roadmap-card" to={`/roadmaps/${roadmap.id}`}>
+    <article className="roadmap-card">
       <div className="roadmap-card-top">
         <span className="roadmap-card-icon" aria-hidden="true">✦</span>
-        <span className={`status-badge ${roadmap.status || 'pending'}`}>
-          {getStatusLabel(roadmap.status)}
-        </span>
+        <div className="roadmap-card-tools">
+          <span className={`status-badge ${roadmap.status || 'pending'}`}>
+            {getStatusLabel(roadmap.status)}
+          </span>
+          <button
+            className="roadmap-delete-button"
+            type="button"
+            aria-label={`Delete ${roadmap.title} roadmap`}
+            onClick={() => onDelete(roadmap)}
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M4.5 6h11M8 6V4h4v2m2.5 0-.6 10H6.1L5.5 6m3 3v4m3-4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
-      <h2>{roadmap.title}</h2>
-      <p className="roadmap-card-description">
-        {roadmap.description || 'A learning plan tailored to your goals.'}
-      </p>
-      <div className="roadmap-progress-meta">
-        <span>{completedDays} of {roadmap.total_days || roadmap.days?.length || 0} days</span>
-        <span>{progress}%</span>
-      </div>
-      <div
-        className="roadmap-progress-track"
-        role="progressbar"
-        aria-label={`${roadmap.title} progress`}
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow={progress}
-      >
-        <span style={{ width: `${progress}%` }} />
-      </div>
-      <p className="roadmap-card-current">
-        {roadmap.status === 'completed'
-          ? 'Roadmap complete'
-          : `Current day: ${roadmap.current_day || 1}`}
-      </p>
-      <span className="roadmap-card-link">View learning plan <span aria-hidden="true">→</span></span>
-    </Link>
+      <Link className="roadmap-card-content" to={`/roadmaps/${roadmap.id}`}>
+        <h2>{roadmap.title}</h2>
+        <p className="roadmap-card-description">
+          {roadmap.description || 'A learning plan tailored to your goals.'}
+        </p>
+        <div className="roadmap-progress-meta">
+          <span>{completedDays} of {roadmap.total_days || roadmap.days?.length || 0} days</span>
+          <span>{progress}%</span>
+        </div>
+        <div
+          className="roadmap-progress-track"
+          role="progressbar"
+          aria-label={`${roadmap.title} progress`}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow={progress}
+        >
+          <span style={{ width: `${progress}%` }} />
+        </div>
+        <p className="roadmap-card-current">
+          {roadmap.status === 'completed'
+            ? 'Roadmap complete'
+            : `Current day: ${roadmap.current_day || 1}`}
+        </p>
+        <span className="roadmap-card-link">View learning plan <span aria-hidden="true">→</span></span>
+      </Link>
+    </article>
   )
 }
 
@@ -262,6 +277,8 @@ function Roadmaps({ theme, onToggleTheme }) {
   const [completingDay, setCompletingDay] = useState(null)
   const [completionMessage, setCompletionMessage] = useState('')
   const [completionError, setCompletionError] = useState('')
+  const [roadmapToDelete, setRoadmapToDelete] = useState(null)
+  const [roadmapSuccessMessage, setRoadmapSuccessMessage] = useState('')
   const selectedRoadmap = roadmaps.find((roadmap) => String(roadmap.id) === roadmapId)
 
   useEffect(() => {
@@ -420,6 +437,33 @@ function Roadmaps({ theme, onToggleTheme }) {
     }
   }
 
+  async function handleDeleteRoadmap() {
+    if (!roadmapToDelete) return
+
+    try {
+      await deleteRoadmap(roadmapToDelete.id)
+      setRoadmaps((currentRoadmaps) => currentRoadmaps.filter(
+        (roadmap) => roadmap.id !== roadmapToDelete.id,
+      ))
+      setRoadmapSuccessMessage(`“${roadmapToDelete.title}” was deleted successfully.`)
+      const deletedRoadmapId = String(roadmapToDelete.id)
+      setRoadmapToDelete(null)
+      if (roadmapId === deletedRoadmapId) {
+        navigate('/roadmaps', { replace: true })
+      }
+    } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        clearAuth()
+        navigate('/login', { replace: true })
+        return
+      }
+      throw new Error(
+        requestError.response?.data?.message
+          || 'We couldn’t delete this roadmap. Please try again.',
+      )
+    }
+  }
+
   const totalDays = Number(selectedRoadmap?.total_days) || selectedRoadmap?.days?.length || 0
   const progress = selectedRoadmap ? getProgress(selectedRoadmap) : 0
   const completedDays = selectedRoadmap ? getCompletedDays(selectedRoadmap) : 0
@@ -466,9 +510,22 @@ function Roadmaps({ theme, onToggleTheme }) {
                 <h1 id="roadmaps-title">{selectedRoadmap.title}</h1>
                 <p>{selectedRoadmap.description}</p>
               </div>
-              <span className={`status-badge ${selectedRoadmap.status || 'pending'}`}>
-                {getStatusLabel(selectedRoadmap.status)}
-              </span>
+              <div className="roadmap-detail-actions">
+                <span className={`status-badge ${selectedRoadmap.status || 'pending'}`}>
+                  {getStatusLabel(selectedRoadmap.status)}
+                </span>
+                <button
+                  className="roadmap-delete-button"
+                  type="button"
+                  aria-label={`Delete ${selectedRoadmap.title} roadmap`}
+                  onClick={() => setRoadmapToDelete(selectedRoadmap)}
+                >
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.5 6h11M8 6V4h4v2m2.5 0-.6 10H6.1L5.5 6m3 3v4m3-4v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
             </div>
 
             {completionMessage && (
@@ -630,6 +687,13 @@ function Roadmaps({ theme, onToggleTheme }) {
               )}
             </div>
 
+            {roadmapSuccessMessage && (
+              <p className="task-success-message roadmap-delete-success" role="status">
+                <span aria-hidden="true">✓</span>{roadmapSuccessMessage}
+                <button type="button" onClick={() => setRoadmapSuccessMessage('')} aria-label="Dismiss deletion message">×</button>
+              </p>
+            )}
+
             {roadmaps.length === 0 ? (
               <div className="task-state">
                 <div className="task-state-inner">
@@ -645,7 +709,7 @@ function Roadmaps({ theme, onToggleTheme }) {
             ) : (
               <div className="roadmap-grid">
                 {roadmaps.map((roadmap) => (
-                  <RoadmapCard key={roadmap.id} roadmap={roadmap} />
+                  <RoadmapCard key={roadmap.id} roadmap={roadmap} onDelete={setRoadmapToDelete} />
                 ))}
               </div>
             )}
@@ -653,6 +717,15 @@ function Roadmaps({ theme, onToggleTheme }) {
         )}
       </section>
       </div>
+      {roadmapToDelete && (
+        <DeleteTaskDialog
+          task={roadmapToDelete}
+          entityLabel="roadmap"
+          confirmationMessage="Delete this roadmap? Its learning progress and roadmap history will be permanently removed."
+          onCancel={() => setRoadmapToDelete(null)}
+          onConfirm={handleDeleteRoadmap}
+        />
+      )}
     </AppShell>
   )
 }

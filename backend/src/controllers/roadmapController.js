@@ -308,4 +308,36 @@ async function createRoadmap(req, res) {
   }
 }
 
-module.exports = { completeRoadmapDay, createRoadmap, getRoadmaps };
+async function deleteRoadmap(req, res) {
+  if (!Number.isSafeInteger(req.userId) || req.userId < 1) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const roadmapIdParam = req.params.roadmapId;
+  const roadmapId = Number(roadmapIdParam);
+  if (
+    typeof roadmapIdParam !== "string" ||
+    !/^[1-9]\d*$/.test(roadmapIdParam) ||
+    !Number.isSafeInteger(roadmapId)
+  ) {
+    return res.status(400).json({ message: "Roadmap ID must be a valid positive integer." });
+  }
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM learning_roadmaps
+       WHERE id = $1 AND user_id = $2
+       RETURNING id`,
+      [roadmapId, req.userId],
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Roadmap not found." });
+    }
+    return res.json({ message: "Roadmap deleted successfully." });
+  } catch (error) {
+    console.error("Roadmap deletion failed:", error);
+    return res.status(500).json({ message: "Unable to delete the roadmap." });
+  }
+}
+
+module.exports = { completeRoadmapDay, createRoadmap, deleteRoadmap, getRoadmaps };
