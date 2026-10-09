@@ -110,9 +110,29 @@ async function generateRoadmapFromText(text) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "An unknown API error occurred.";
-    const safeMessage = apiKey
-      ? message.split(apiKey).join("[redacted]")
-      : message;
+    const providerError =
+      error?.error?.error && typeof error.error.error === "object"
+        ? error.error.error
+        : error?.error;
+    const redactDiagnosticValue = (value) => {
+      if (typeof value !== "string") return null;
+      let sanitized = apiKey ? value.split(apiKey).join("[redacted]") : value;
+      if (text) sanitized = sanitized.split(text).join("[PDF text redacted]");
+      return sanitized.slice(0, 500);
+    };
+    const safeMessage = redactDiagnosticValue(message) || message;
+    console.error("Groq roadmap generation request failed:", {
+      status: Number.isInteger(error?.status) ? error.status : null,
+      providerMessage: redactDiagnosticValue(providerError?.message),
+      providerErrorType: redactDiagnosticValue(providerError?.type),
+      providerErrorCode:
+        typeof providerError?.code === "string" ||
+        typeof providerError?.code === "number"
+          ? redactDiagnosticValue(String(providerError.code))
+          : null,
+      errorName: redactDiagnosticValue(error?.name),
+      extractedTextCharacterCount: text.length,
+    });
     throw new Error(`Groq roadmap generation failed: ${safeMessage}`);
   }
 
