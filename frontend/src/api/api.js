@@ -35,6 +35,10 @@ export function chatWithRoadmap(roadmapId, message) {
   return api.post(`/roadmaps/${roadmapId}/chat`, { message })
 }
 
+export function chatWithAssistant(message) {
+  return api.post('/assistant/chat', { message }, { timeout: 26000 })
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('taskManagerToken')
   if (token) {

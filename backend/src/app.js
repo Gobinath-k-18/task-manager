@@ -6,6 +6,7 @@ const taskRoutes = require("./routes/taskRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const reminderRoutes = require("./routes/reminderRoutes");
 const roadmapRoutes = require("./routes/roadmapRoutes");
+const assistantRoutes = require("./routes/assistantRoutes");
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/reminders", reminderRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
+app.use("/api/assistant", assistantRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ message: "Task Manager API is running" });

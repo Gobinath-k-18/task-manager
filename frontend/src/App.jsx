@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { getToken } from './api/authStorage'
+import AuthenticatedLayout from './components/AuthenticatedLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -23,39 +24,35 @@ function App() {
         <Route path="/" element={<Navigate to={getToken() ? '/dashboard' : '/login'} replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route
-          path="/dashboard"
-          element={(
-            <ProtectedRoute>
+        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+          <Route
+            path="/dashboard"
+            element={(
               <Dashboard
                 theme={theme}
                 onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
               />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/roadmaps"
-          element={(
-            <ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/roadmaps"
+            element={(
               <Roadmaps
                 theme={theme}
                 onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
               />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/roadmaps/:roadmapId"
-          element={(
-            <ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/roadmaps/:roadmapId"
+            element={(
               <Roadmaps
                 theme={theme}
                 onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
               />
-            </ProtectedRoute>
-          )}
-        />
+            )}
+          />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
